@@ -29,29 +29,16 @@ from transformers import (
     TrainingArguments,
 )
 
-# ============================================================
-# 常量
-# ============================================================
-
 # -100 是 PyTorch CrossEntropyLoss 的 ignore_index
 # labels 中值为 -100 的位置不参与 loss 计算
 # SFT 中，prompt 部分设为 -100，只对 assistant 回复计算 loss
 IGNORE_INDEX = -100
 
 
-# ============================================================
-# 模块 1 复用：数据加载
-# ============================================================
-
 def load_jsonl(path):
     """读取 jsonl 文件，返回 list[dict]"""
-    items = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()# 去掉首尾空格
-            if line:# 跳过空行
-                items.append(json.loads(line))
-    return items
+    # TODO: 你的代码（和模块 1 的 read_jsonl 一样）
+    pass
 
 
 # ============================================================
@@ -74,17 +61,14 @@ def build_messages(example):
         {"role": "user",      "content": "请以谨慎、专业、易懂的方式回答下面的医疗健康问题。\n\n问题：高血压应该怎么办？"},
         {"role": "assistant", "content": "高血压患者应该..."},
     ]
-    """
-    user_content = example["instruction"].strip()
-    input_content = example["input"].strip()
-    if input_content:
-        user_content = f"{user_content}\n\n问题：{input_content}"
-    return [
-        {"role": "system",    "content": "你是一名谨慎的医疗健康问答助手。回答应清晰、专业，并提醒用户必要时及时就医。"},
-        {"role": "user",      "content": user_content},
-        {"role": "assistant", "content": example["output"].strip()},
-    ]
 
+    提示：
+    - system 固定为医疗助手提示词
+    - user = instruction + "\\n\\n问题：" + input（如果 input 不为空）
+    - assistant = output
+    """
+    # TODO: 你的代码
+    pass
 
 
 def preprocess(example, tokenizer, max_length):
@@ -116,41 +100,11 @@ def preprocess(example, tokenizer, max_length):
     为什么要这样设计 labels：
     - -100 在 CrossEntropyLoss 中被忽略
     - prompt 部分设为 -100：模型不需要学习"复述问题"
-    - answer 部分保留真实 token：模型学习"怎么回答"
+    - answer 部分保留真实 Token：模型学习"怎么回答"
     - 这叫 assistant-only loss mask，是 SFT 的标准做法
     """
-    messages = build_messages(example)
-    prompt_messages = messages[:-1]
-    answer = messages[-1]["content"]
-    prompt_ids = tokenizer.apply_chat_template(
-        prompt_messages,
-        tokenize=True,             # 返回 token ids，而不是字符串
-        add_generation_prompt=True,  # 在末尾加上 assistant 的开头标记
-        return_tensors=None,       # 返回 list，不返回 tensor（方便后续处理）
-    )
-
-    # apply_chat_template 返回值类型不固定，需要检查并转换
-    if hasattr(prompt_ids, "input_ids"):
-        prompt_ids = prompt_ids.input_ids   # BatchEncoding → 提取 input_ids
-    if hasattr(prompt_ids, "tolist"):
-        prompt_ids = prompt_ids.tolist()    # tensor → list
-    answer_ids = tokenizer(answer + tokenizer.eos_token, add_special_tokens=False)["input_ids"]
-
-    input_ids = prompt_ids + answer_ids
-    labels = [-100] * len(prompt_ids) + answer_ids
-    attention_mask = [1] * len(input_ids)
-
-    if len(input_ids) > max_length:
-        input_ids = input_ids[:max_length]
-        labels = labels[:max_length]
-        attention_mask = attention_mask[:max_length]
-
-    return {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "labels": labels,
-    }
-
+    # TODO: 你的代码
+    pass
 
 
 # ============================================================
@@ -205,37 +159,8 @@ def load_model_and_lora(model_name, r=8, lora_alpha=16, lora_dropout=0.05):
     - B: r×d 矩阵（训练）
     - alpha/r: 缩放因子
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    
-    model = AutoModelForCausalLM.from_pretrained(
-           model_name,
-           torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-           device_map="auto" if torch.cuda.is_available() else None,
-           trust_remote_code=True,
-    )
-
-    model.config.use_cache = False
-    model.enable_input_require_grads()
-
-    lora_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,    # 因果语言模型
-        r=r,                               # rank，低秩矩阵维度
-        lora_alpha=lora_alpha,             # 缩放因子
-        lora_dropout=lora_dropout,         # dropout
-        target_modules=[                   # 对哪些层加 LoRA
-            "q_proj", "k_proj", "v_proj", "o_proj",  # 注意力层
-            "gate_proj", "up_proj", "down_proj",      # FFN 层
-        ],
-    )
-
-
-    model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
-
-
-    return tokenizer, model
+    # TODO: 你的代码
+    pass
 
 
 # ============================================================
@@ -258,64 +183,20 @@ def main():
     parser.add_argument("--r", type=int, default=8)
     args = parser.parse_args()
 
-    # 步骤 1 - 加载 tokenizer 和模型
-    tokenizer, model = load_model_and_lora(args.model_name, r=args.r)
-
-    # 步骤 2 - 加载数据
-    train_items = load_jsonl(args.train_file)
-    valid_items = load_jsonl(args.valid_file)
-
-    # 步骤 3 - 如果 max_train_samples > 0，截取前 N 条
-    if args.max_train_samples > 0:
-        train_items = train_items[:args.max_train_samples]
-    if args.max_valid_samples > 0:
-        valid_items = valid_items[:args.max_valid_samples]
-
-    # 步骤 4 - 构建 Dataset
-    train_dataset = Dataset.from_list(train_items).map(
-        lambda x: preprocess(x, tokenizer, args.max_length),
-        remove_columns=list(train_items[0].keys()),
-    )
-    valid_dataset = Dataset.from_list(valid_items).map(
-        lambda x: preprocess(x, tokenizer, args.max_length),
-        remove_columns=list(valid_items[0].keys()),
-    )
-
-    # 步骤 5 - 配置 TrainingArguments
-    training_args = TrainingArguments(
-        output_dir=args.output_dir,
-        num_train_epochs=args.epochs,
-        per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=args.grad_accum,
-        learning_rate=args.lr,
-        logging_steps=100,
-        save_steps=1000,
-        eval_steps=1000,
-        eval_strategy="steps",
-        bf16=True,
-        report_to="none",
-        remove_unused_columns=False,
-    )
-
-
-
-    # 步骤 6 - 创建 Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=valid_dataset,
-        data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True),
-    )
-
-    # 步骤 7 - 训练
-    trainer.train()
-
-    # 步骤 8 - 保存 adapter 和 tokenizer
-    model.save_pretrained(args.output_dir)
-    tokenizer.save_pretrained(args.output_dir)
-    print(f"LoRA adapter saved to {args.output_dir}")
-
+    # TODO: 步骤 1 - 调用 load_model_and_lora 加载 tokenizer 和模型
+    # TODO: 步骤 2 - 用 load_jsonl 加载训练和验证数据
+    # TODO: 步骤 3 - 如果 max_train_samples > 0，截取前 N 条
+    # TODO: 步骤 4 - 用 Dataset.from_list + .map(preprocess) 构建数据集
+    #         注意 remove_columns= 把原始列删掉，只保留 preprocess 的输出
+    # TODO: 步骤 5 - 配置 TrainingArguments（关键参数见下方）
+    #         output_dir, num_train_epochs, per_device_train_batch_size,
+    #         gradient_accumulation_steps, learning_rate, logging_steps,
+    #         save_steps, eval_steps, eval_strategy="steps",
+    #         bf16=True, report_to="none", remove_unused_columns=False
+    # TODO: 步骤 6 - 创建 Trainer，注意 data_collator 用 DataCollatorForSeq2Seq
+    # TODO: 步骤 7 - trainer.train()
+    # TODO: 步骤 8 - 保存 model.save_pretrained() 和 tokenizer.save_pretrained()
+    pass
 
 
 # ============================================================
