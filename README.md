@@ -179,10 +179,10 @@ MiniLoRA/
 
 ### About the scripts/ Directory
 
-- `scripts/xxx.py` (no `my_` prefix): Reference code, pre-written and runnable, for comparison
-- `scripts/my_xxx.py` (with `my_` prefix): Student-written code
+- `scripts/xxx.py` (no `my_` prefix): Reference code, pre-written and runnable
+- `scripts/my_xxx.py` (with `my_` prefix): Blank templates with TODO hints for you to fill in
 
-Recommended approach: read the reference code first, then close it and write your own `my_*.py` from scratch.
+Learning flow: read the reference code to understand the logic, then close it and fill in the `TODO` sections in `my_*.py`.
 
 ## Code Walkthrough
 
