@@ -19,7 +19,7 @@ Raw data → Clean & split → SFT preprocessing → LoRA training → Inference
 
 | Module | File | What You Learn |
 |--------|------|----------------|
-| 1. Data Preparation | `scripts/my_prepare_data.py` | jsonl I/O, data cleaning, train/valid/test splitting |
+| 1. Data Preparation | `scripts/my_prepare_data.py` | jsonl I/O, data cleaning, use original train/valid/test split |
 | 2. SFT Preprocessing | `scripts/my_train_lora.py` | Messages format, tokenization, assistant-only loss mask (-100) |
 | 3. LoRA Config | `scripts/my_train_lora.py` | LoRA theory, get_peft_model, target_modules |
 | 4. Training | `scripts/my_train_lora.py` | TrainingArguments, Trainer, gradient accumulation, bf16 |
@@ -188,7 +188,7 @@ Learning flow: read the reference code to understand the logic, then close it an
 
 ### Module 1: Data Preparation (`my_prepare_data.py`)
 
-4 functions:
+3 functions:
 
 ```python
 read_jsonl(path)                    # Read jsonl file

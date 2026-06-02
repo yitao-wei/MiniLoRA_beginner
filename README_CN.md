@@ -17,7 +17,7 @@
 
 | 模块 | 文件 | 学什么 |
 |------|------|--------|
-| 1. 数据准备 | `scripts/my_prepare_data.py` | jsonl 读写、数据清洗、数据集划分 |
+| 1. 数据准备 | `scripts/my_prepare_data.py` | jsonl 读写、数据清洗、使用原始 train/valid/test 分割 |
 | 2. SFT 预处理 | `scripts/my_train_lora.py` | messages 格式、tokenize、assistant-only loss mask（-100） |
 | 3. LoRA 配置 | `scripts/my_train_lora.py` | LoRA 原理、get_peft_model、target_modules |
 | 4. 训练 | `scripts/my_train_lora.py` | TrainingArguments、Trainer、梯度累积、bf16 |
@@ -185,7 +185,7 @@ MiniLoRA/
 
 ### 模块 1：数据准备 (`my_prepare_data.py`)
 
-4 个函数：
+3 个函数：
 
 ```python
 read_jsonl(path)                    # 读取 jsonl 文件
