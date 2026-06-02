@@ -131,7 +131,7 @@ python download_dataset.py
 # Method 1 (default): Use only train_zh_0.json, faster
 python scripts/my_prepare_data.py
 
-# Method 2: Use all raw files (train + valid + test), more comprehensive
+# Method 2: Use all raw files (train + valid + test) with original split
 python scripts/my_prepare_data.py --use-all-files
 
 # Modules 2-4: Training (quick test with 50 samples)
@@ -203,7 +203,7 @@ write_jsonl(path, items)            # Write jsonl (ensure_ascii=False)
 
 Two data preparation methods:
 - **Method 1 (default)**: Use only `train_zh_0.json`, faster, 800 samples random split
-- **Method 2 (`--use-all-files`)**: Use all raw files (train + valid + test), more comprehensive
+- **Method 2 (`--use-all-files`)**: Use all raw files (train + valid + test) with original split
 
 Key point: `ensure_ascii=False` ensures Chinese characters are not escaped to `\uXXXX`.
 

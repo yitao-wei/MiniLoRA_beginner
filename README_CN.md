@@ -129,7 +129,7 @@ python download_dataset.py
 # 方法1（默认）：只使用 train_zh_0.json，速度更快
 python scripts/my_prepare_data.py
 
-# 方法2：使用所有原始文件（train + valid + test），更全面
+# 方法2：使用所有原始文件（train + valid + test），直接使用原始分割
 python scripts/my_prepare_data.py --use-all-files
 
 # 模块 2-4：训练（用 50 条数据快速测试）
@@ -200,7 +200,7 @@ write_jsonl(path, items)            # 写出 jsonl（ensure_ascii=False）
 
 两种数据准备方法：
 - **方法1（默认）**：只使用 `train_zh_0.json`，速度更快，随机抽取 800 条重新划分
-- **方法2（`--use-all-files`）**：使用所有原始文件（train + valid + test），更全面
+- **方法2（`--use-all-files`）**：使用所有原始文件（train + valid + test），直接使用原始分割
 
 关键点：`ensure_ascii=False` 保证中文不被转义成 `\uXXXX`。
 
