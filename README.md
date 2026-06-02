@@ -128,11 +128,7 @@ python download_dataset.py
 
 ```bash
 # Module 1: Data preparation (generates data/medical/*.jsonl)
-# Method 1 (default): Use only train_zh_0.json, faster
 python scripts/my_prepare_data.py
-
-# Method 2: Use all raw files (train + valid + test) with original split
-python scripts/my_prepare_data.py --use-all-files
 
 # Modules 2-4: Training (quick test with 50 samples)
 python scripts/my_train_lora.py --max-train-samples 50 --max-valid-samples 20 --epochs 1 --grad-accum 4 --max-length 256
@@ -197,13 +193,10 @@ Learning flow: read the reference code to understand the logic, then close it an
 ```python
 read_jsonl(path)                    # Read jsonl file
 normalize_item(item)                # Clean a data item (unify instruction, filter empty output)
-split_data(items, 0.8, 0.1, 42)     # Split into train/valid/test (80/10/10)
 write_jsonl(path, items)            # Write jsonl (ensure_ascii=False)
 ```
 
-Two data preparation methods:
-- **Method 1 (default)**: Use only `train_zh_0.json`, faster, 800 samples random split
-- **Method 2 (`--use-all-files`)**: Use all raw files (train + valid + test) with original split
+Reads train/valid/test raw files separately, applies cleaning, and uses the original split directly.
 
 Key point: `ensure_ascii=False` ensures Chinese characters are not escaped to `\uXXXX`.
 
