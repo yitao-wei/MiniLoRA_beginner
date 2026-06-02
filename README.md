@@ -11,8 +11,8 @@ For people with Python and PyTorch experience who want to learn LoRA fine-tuning
 Fine-tunes Qwen2.5-0.5B-Instruct (498M parameters) with LoRA SFT on 640 Chinese medical Q&A samples, then compares base vs. fine-tuned model outputs.
 
 ```
-Raw data → Clean & split → SFT preprocessing → LoRA training → Inference → Evaluation → Ablation
- Module 1     Module 1         Module 2         Modules 3-4    Module 5    Module 6     Module 7
+Raw data → Clean → SFT preprocessing → LoRA training → Inference → Evaluation → Ablation
+ Module 1    Module 1       Module 2         Modules 3-4    Module 5    Module 6     Module 7
 ```
 
 ## 7 Modules
@@ -86,7 +86,7 @@ Data example:
 }
 ```
 
-This project uses 800 samples, split 80/10/10 into train (640), valid (160), and test (200).
+The original dataset has train/valid/test splits. This project uses the original split directly.
 
 ## Quick Start
 
