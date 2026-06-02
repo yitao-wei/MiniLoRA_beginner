@@ -1,0 +1,6 @@
+experiment,rank,train_samples,valid_samples,max_length,epochs,batch_size,grad_accum,train_loss,eval_loss,trainable_params_pct,adapter_dir
+rank4_1000,4,640,160,256,1.0,1,4,2.764,2.714,0.44%,outputs/lora-r4-1000
+rank8_1000,8,640,160,256,1.0,1,4,2.763,2.715,0.88%,outputs/lora-r8-1000
+rank16_1000,16,640,160,256,1.0,1,4,2.764,2.716,1.76%,outputs/lora-r16-1000
+rank8_200,8,200,50,256,1.0,1,4,2.823,2.634,0.88%,outputs/lora-r8-200
+rank8_5000,8,640,160,256,1.0,1,4,2.720,2.663,0.88%,outputs/lora-r8-5000
