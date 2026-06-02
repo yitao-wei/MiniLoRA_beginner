@@ -30,6 +30,17 @@ def read_jsonl(path):
     - 跳过空行
     """
     # TODO: 你的代码
+    items: list[dict] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()           # 去掉每行末尾的换行符和空白
+            if not line:                   # 跳过空行
+                continue
+            try:
+                items.append(json.loads(line))  # 把 JSON 字符串解析成 Python 字典
+            except json.JSONDecodeError:
+                continue                   # 如果某行 JSON 格式有误，跳过而不是报错
+    return items
     pass
 
 
@@ -58,6 +69,30 @@ def normalize_item(item):
     - 但因为 instruction 已经被统一了，所以只需要关注 input
     """
     # TODO: 你的代码
+    instruction = str(item.get("instruction", "")).strip()
+    input_text = str(item.get("input", "")).strip()
+    output = str(item.get("output", "")).strip()
+    if not output:
+        return None
+    if input_text:
+        # 情况 B 或 C: input 不为空
+        if instruction:
+            # 情况 C: instruction 和 input 都有，拼起来作为完整问题
+            prompt = f"{instruction}\n{input_text}"
+        else:
+            # 情况 B: 只有 input，直接用它作为问题
+            prompt = input_text
+    else:
+        # 情况 A: 只有 instruction，用它作为问题
+        prompt = instruction
+    if not prompt:
+        return None
+    return {
+        "instruction": "请以谨慎、专业、易懂的方式回答下面的医疗健康问题。",
+        "input": prompt,
+        "output": output,
+    }
+    
     pass
 
 
@@ -78,6 +113,22 @@ def split_data(items, train_ratio=0.8, valid_ratio=0.1, seed=42):
     - 按比例切分
     """
     # TODO: 你的代码
+    random.seed(seed)
+    
+    # 浅拷贝原始列表，避免 random.shuffle 修改传入的原始数据
+    data = list(items)
+    
+    random.shuffle(data)
+
+    n = len(data)
+    train_end = int(n * train_ratio)
+    valid_end = int(n * (train_ratio + valid_ratio))
+
+    train_data = data[:train_end]
+    valid_data = data[train_end:valid_end]
+    test_data = data[valid_end:]
+    
+    return train_data, valid_data, test_data
     pass
 
 
@@ -91,6 +142,12 @@ def write_jsonl(path, items):
     - ensure_ascii=False 保证中文不被转义
     """
     # TODO: 你的代码
+    path.parent.mkdir(parents=True, exist_ok=True)  # 如果目录不存在就创建
+    with path.open("w", encoding="utf-8") as f:
+        for item in items:
+            # json.dumps 把字典转成 JSON 字符串
+            # ensure_ascii=False 保证中文正常显示，不会变成 中文
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
     pass
 
 
@@ -103,11 +160,19 @@ def main():
         print(f"原始数据不存在: {raw_path}")
         print("请先运行 python download_dataset.py 下载数据集")
         return
+    
+
 
     # TODO: 步骤 1 - 用 read_jsonl 读取原始数据
+    items = read_jsonl(raw_path)
     # TODO: 步骤 2 - 逐条调用 normalize_item 清洗，过滤掉 None
+    items = [normalize_item(item) for item in items]
     # TODO: 步骤 3 - 调用 split_data 划分数据集
+    train_data, valid_data, test_data = split_data(items)
     # TODO: 步骤 4 - 用 write_jsonl 写出 train.jsonl、valid.jsonl、test.jsonl
+    write_jsonl(out_dir / "train.jsonl", train_data)
+    write_jsonl(out_dir / "valid.jsonl", valid_data)
+    write_jsonl(out_dir / "test.jsonl", test_data)
     pass
 
 

@@ -123,4 +123,113 @@ def generate(tokenizer, model, question: str, max_new_tokens: int) -> str:
     # --- 步骤 2: 应用 chat template 并 tokenize ---
     # apply_chat_template 会把 messages 转成带特殊标记的 token 序列
     # 例如 Qwen 会生成类似这样的结构：
-    #
+    # <|im_start|>system\n你是一名...<|im_end|>\n
+    # <|im_start|>user\n问题...<|im_end|>\n
+    # <|im_start|>assistant\n
+    text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+
+    # --- 步骤 3: 生成回答 ---
+    # model.generate() 参数说明:
+    # - max_new_tokens: 最多生成多少个新 token（不包括 prompt）
+    # - do_sample=True: 启用采样，让回答更有多样性
+    # - temperature=0.7: 控制随机性，越低越确定，越高越随机
+    # - top_p=0.9: nucleus sampling，只从累积概率 > 0.9 的 token 中采样
+    # - repetition_penalty=1.1: 重复惩罚，>1 降低重复内容
+    generated_ids = model.generate(
+        **model_inputs,
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+        repetition_penalty=1.1,
+    )
+
+    # --- 步骤 4: 解码 ---
+    # 只解码新生成的部分（去掉 prompt 部分）
+    generated_ids = [
+        output_ids[len(input_ids):]
+        for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    ]
+    response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    return response
+
+
+# ============================================================
+# 函数 3: 主函数
+# ============================================================
+
+def main():
+    parser = argparse.ArgumentParser(description="Base vs LoRA 推理对比")
+    parser.add_argument(
+        "--model-name",
+        default="models/Qwen2.5-0.5B-Instruct",
+        help="基础模型路径",
+    )
+    parser.add_argument(
+        "--adapter-dir",
+        type=Path,
+        default=Path("outputs/qwen-medical-lora"),
+        help="LoRA adapter 目录",
+    )
+    parser.add_argument(
+        "--question",
+        type=str,
+        default="高血压患者日常生活中应该注意什么？",
+        help="要提问的问题",
+    )
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=256,
+        help="最多生成的新 token 数",
+    )
+    args = parser.parse_args()
+
+    print("=" * 60)
+    print("Base vs LoRA 推理对比")
+    print("=" * 60)
+    print(f"\n问题: {args.question}\n")
+
+    # --- 加载 Base 模型 ---
+    print("[1/2] 加载 Base 模型...")
+    tokenizer_base, model_base = load_model(args.model_name, adapter_dir=None)
+    print("  Base 模型加载完成\n")
+
+    # --- Base 模型生成 ---
+    print("  Base 模型回答:")
+    base_response = generate(tokenizer_base, model_base, args.question, args.max_new_tokens)
+    print(f"  {base_response}\n")
+
+    # --- 加载 LoRA 模型 ---
+    print("[2/2] 加载 LoRA 模型...")
+    if not args.adapter_dir.exists():
+        print(f"  ⚠️  LoRA adapter 不存在: {args.adapter_dir}")
+        print("  请先运行训练脚本生成 LoRA adapter")
+        return
+    tokenizer_lora, model_lora = load_model(args.model_name, args.adapter_dir)
+    print("  LoRA 模型加载完成\n")
+
+    # --- LoRA 模型生成 ---
+    print("  LoRA 模型回答:")
+    lora_response = generate(tokenizer_lora, model_lora, args.question, args.max_new_tokens)
+    print(f"  {lora_response}\n")
+
+    # --- 对比总结 ---
+    print("=" * 60)
+    print("对比总结")
+    print("=" * 60)
+    print(f"\nBase 模型输出长度: {len(base_response)} 字符")
+    print(f"LoRA 模型输出长度: {len(lora_response)} 字符")
+    print("\n观察点:")
+    print("  1. LoRA 模型的回答是否更专业？")
+    print("  2. LoRA 模型的回答是否更有条理？")
+    print("  3. LoRA 模型是否更倾向于建议就医？")
+
+
+if __name__ == "__main__":
+    main()

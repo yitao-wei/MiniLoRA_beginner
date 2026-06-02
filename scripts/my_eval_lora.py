@@ -29,24 +29,82 @@ def load_model(model_name, adapter_dir=None):
     adapter_dir="路径" → 加载 base + LoRA adapter
     """
     # TODO: 你的代码（从模块 5 复制过来）
+    tokenizer = AutoTokenizer.from_pretrained(adapter_dir or model_name, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token  # Qwen 没有 pad_token，用 eos 代替
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        device_map="auto" if torch.cuda.is_available() else None,
+        trust_remote_code=True,
+    )
+    if adapter_dir is not None:
+        model = PeftModel.from_pretrained(model, adapter_dir)
+    model.eval()
+    return tokenizer, model
     pass
 
 
 def generate(tokenizer, model, question, max_new_tokens=256):
     """用模型生成回答（复用模块 5）"""
     # TODO: 你的代码（从模块 5 复制过来）
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"请以谨慎、专业、易懂的方式回答下面的医疗健康问题。\n\n问题：{question}"},
+    ]
+
+    text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+    
+    generated_ids = model.generate(
+        **model_inputs,
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+        repetition_penalty=1.1,
+    )
+    generated_ids = [
+        output_ids[len(input_ids):]
+        for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    ]
+    response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    return response
     pass
 
 
 def load_jsonl(path):
     """读取 jsonl 文件，返回 list[dict]"""
     # TODO: 你的代码
+    items: list[dict] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()           # 去掉每行末尾的换行符和空白
+            if not line:                   # 跳过空行
+                continue
+            try:
+                items.append(json.loads(line))  # 把 JSON 字符串解析成 Python 字典
+            except json.JSONDecodeError:
+                continue                   # 如果某行 JSON 格式有误，跳过而不是报错
+    return items
     pass
 
 
 def write_jsonl(path, items):
     """写出 jsonl 文件，ensure_ascii=False 保证中文不被转义"""
     # TODO: 你的代码
+    path.parent.mkdir(parents=True, exist_ok=True)  # 如果目录不存在就创建
+    with path.open("w", encoding="utf-8") as f:
+        for item in items:
+            # json.dumps 把字典转成 JSON 字符串
+            # ensure_ascii=False 保证中文正常显示，不会变成 中文
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+    pass
     pass
 
 
