@@ -228,6 +228,8 @@ Key points:
 
 ### Module 6: Batch Evaluation (`my_eval_lora.py`)
 
+`eval_prompts.jsonl` is included in the repo (10 medical questions for evaluation).
+
 Pipeline: read eval questions -> run base model on all -> free VRAM -> run LoRA model on all -> save comparison results.
 
 ### Module 7: Ablation Experiments

@@ -225,6 +225,8 @@ generate(tokenizer, model, question) # 生成回答
 
 ### 模块 6：批量评测 (`my_eval_lora.py`)
 
+`eval_prompts.jsonl` 已包含在仓库中（10 个医疗评测问题）。
+
 流程：读取评测问题 → 跑 base 模型全部问题 → 释放显存 → 跑 LoRA 模型全部问题 → 保存对比结果。
 
 ### 模块 7：消融实验
