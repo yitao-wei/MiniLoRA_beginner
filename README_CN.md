@@ -126,7 +126,11 @@ python download_dataset.py
 
 ```bash
 # 模块 1：数据准备（生成 data/medical/*.jsonl）
+# 方法1（默认）：只使用 train_zh_0.json，速度更快
 python scripts/my_prepare_data.py
+
+# 方法2：使用所有原始文件（train + valid + test），更全面
+python scripts/my_prepare_data.py --use-all-files
 
 # 模块 2-4：训练（用 50 条数据快速测试）
 python scripts/my_train_lora.py --max-train-samples 50 --max-valid-samples 20 --epochs 1 --grad-accum 4 --max-length 256
@@ -193,6 +197,10 @@ normalize_item(item)                # 清洗一条数据（统一 instruction，
 split_data(items, 0.8, 0.1, 42)     # 划分 train/valid/test（80/10/10）
 write_jsonl(path, items)            # 写出 jsonl（ensure_ascii=False）
 ```
+
+两种数据准备方法：
+- **方法1（默认）**：只使用 `train_zh_0.json`，速度更快，随机抽取 800 条重新划分
+- **方法2（`--use-all-files`）**：使用所有原始文件（train + valid + test），更全面
 
 关键点：`ensure_ascii=False` 保证中文不被转义成 `\uXXXX`。
 

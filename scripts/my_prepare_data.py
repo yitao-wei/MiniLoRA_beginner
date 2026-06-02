@@ -4,13 +4,29 @@
 目标：从原始 json 文件生成训练用的 jsonl 文件。
 
 运行方式：
+    # 方法1：只使用 train_zh_0.json（默认，推荐）
     python scripts/my_prepare_data.py
+
+    # 方法2：使用所有原始文件（train + valid + test）合并后重新划分
+    python scripts/my_prepare_data.py --use-all-files
 
 运行后检查 data/medical/ 目录下是否生成了 train.jsonl、valid.jsonl、test.jsonl
 
 参考代码：scripts/prepare_medical_sft.py（先看懂，关掉，再自己写）
+
+两种方法的区别：
+- 方法1（默认）：只读取 train_zh_0.json，从中随机抽取 800 条重新划分
+  - 优点：速度快，只需要下载一个文件
+  - 优点：划分结果完全随机，更均匀
+  - 缺点：只用了原始数据的一部分
+
+- 方法2（--use-all-files）：读取 train_zh_0.json + valid_zh_0.json + test_zh_0.json，合并后重新划分
+  - 优点：使用了所有原始数据
+  - 缺点：需要下载三个文件，速度较慢
+  - 缺点：原始 train/valid/test 的分割可能有偏差
 """
 
+import argparse
 import json
 import random
 from pathlib import Path
@@ -95,20 +111,84 @@ def write_jsonl(path, items):
 
 
 def main():
-    # 原始数据路径
-    raw_path = Path("data/medical_raw/finetune/train_zh_0.json")
-    out_dir = Path("data/medical")
+    parser = argparse.ArgumentParser(description="Prepare medical SFT data from raw JSON files.")
+    parser.add_argument("--use-all-files", action="store_true",
+                        help="Use all raw files (train + valid + test) instead of only train_zh_0.json")
+    parser.add_argument("--raw-dir", type=Path, default=Path("data/medical_raw"),
+                        help="Raw data directory")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/medical"),
+                        help="Output directory for processed data")
+    parser.add_argument("--max-samples", type=int, default=800,
+                        help="Maximum number of samples to use (default: 800)")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for reproducibility")
+    args = parser.parse_args()
 
-    if not raw_path.exists():
-        print(f"原始数据不存在: {raw_path}")
+    # --- 步骤 1: 确定要读取的原始文件 ---
+    finetune_dir = args.raw_dir / "finetune"
+
+    if args.use_all_files:
+        # 方法2：读取所有三个文件
+        raw_files = [
+            finetune_dir / "train_zh_0.json",
+            finetune_dir / "valid_zh_0.json",
+            finetune_dir / "test_zh_0.json",
+        ]
+        print("方法2：使用所有原始文件（train + valid + test）")
+    else:
+        # 方法1：只读取 train_zh_0.json（默认）
+        raw_files = [finetune_dir / "train_zh_0.json"]
+        print("方法1：只使用 train_zh_0.json（默认）")
+
+    # 检查文件是否存在
+    existing_files = [f for f in raw_files if f.exists()]
+    if not existing_files:
+        print(f"原始数据不存在: {finetune_dir}")
         print("请先运行 python download_dataset.py 下载数据集")
         return
 
-    # TODO: 步骤 1 - 用 read_jsonl 读取原始数据
-    # TODO: 步骤 2 - 逐条调用 normalize_item 清洗，过滤掉 None
-    # TODO: 步骤 3 - 调用 split_data 划分数据集
-    # TODO: 步骤 4 - 用 write_jsonl 写出 train.jsonl、valid.jsonl、test.jsonl
-    pass
+    print(f"原始文件: {[str(f.name) for f in existing_files]}")
+
+    # --- 步骤 2: 用 read_jsonl 读取原始数据 ---
+    # TODO: 你的代码（遍历 existing_files，用 read_jsonl 读取每个文件，合并到一个列表）
+    raw_items = []
+    # TODO: 在这里写代码
+    # 提示：for path in existing_files:
+    #           raw_items.extend(read_jsonl(path))
+    print(f"原始数据: {len(raw_items)} 条")
+
+    # --- 步骤 3: 逐条调用 normalize_item 清洗，过滤掉 None ---
+    # TODO: 你的代码（用列表推导式过滤掉 None）
+    normalized = []
+    # TODO: 在这里写代码
+    # 提示：normalized = [item for item in (normalize_item(i) for i in raw_items) if item is not None]
+    print(f"清洗后: {len(normalized)} 条")
+
+    # --- 步骤 4: 如果数据量超过 max_samples，随机抽取 ---
+    if len(normalized) > args.max_samples:
+        random.seed(args.seed)
+        random.shuffle(normalized)
+        normalized = normalized[:args.max_samples]
+        print(f"随机抽取: {args.max_samples} 条")
+
+    # --- 步骤 5: 调用 split_data 划分数据集 ---
+    # TODO: 你的代码
+    train_data, valid_data, test_data = [], [], []
+    # TODO: 在这里写代码
+    # 提示：train_data, valid_data, test_data = split_data(normalized, seed=args.seed)
+
+    # --- 步骤 6: 用 write_jsonl 写出 train.jsonl、valid.jsonl、test.jsonl ---
+    # TODO: 你的代码
+    # TODO: 在这里写代码
+    # 提示：
+    #   write_jsonl(args.out_dir / "train.jsonl", train_data)
+    #   write_jsonl(args.out_dir / "valid.jsonl", valid_data)
+    #   write_jsonl(args.out_dir / "test.jsonl", test_data)
+
+    print(f"\n输出到 {args.out_dir}/")
+    print(f"  train.jsonl: {len(train_data)} 条")
+    print(f"  valid.jsonl: {len(valid_data)} 条")
+    print(f"  test.jsonl:  {len(test_data)} 条")
 
 
 if __name__ == "__main__":
