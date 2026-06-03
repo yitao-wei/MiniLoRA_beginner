@@ -9,15 +9,15 @@
 用 Qwen2.5-0.5B-Instruct（498M 参数），在 640 条中文医疗问答数据上做 LoRA SFT 微调，然后对比微调前后的效果。
 
 ```
-原始数据 → 清洗划分 → SFT 数据预处理 → LoRA 训练 → 推理对比 → 批量评测 → 消融实验
-  模块1        模块1        模块2          模块3-4     模块5       模块6       模块7
+原始数据 → 清洗 → SFT 数据预处理 → LoRA 训练 → 推理对比 → 批量评测 → 消融实验
+  模块1      模块1      模块2          模块3-4     模块5       模块6       模块7
 ```
 
 ## 7 个模块
 
 | 模块 | 文件 | 学什么 |
 |------|------|--------|
-| 1. 数据准备 | `scripts/my_prepare_data.py` | jsonl 读写、数据清洗、数据集划分 |
+| 1. 数据准备 | `scripts/my_prepare_data.py` | jsonl 读写、数据清洗、使用原始 train/valid/test 分割 |
 | 2. SFT 预处理 | `scripts/my_train_lora.py` | messages 格式、tokenize、assistant-only loss mask（-100） |
 | 3. LoRA 配置 | `scripts/my_train_lora.py` | LoRA 原理、get_peft_model、target_modules |
 | 4. 训练 | `scripts/my_train_lora.py` | TrainingArguments、Trainer、梯度累积、bf16 |
@@ -84,7 +84,7 @@ alpha/r: 缩放因子
 }
 ```
 
-本项目从中取 800 条，按 80/10/10 划分为 train（640 条）、valid（160 条）、test（200 条）。
+原始数据集已有 train/valid/test 分割，本项目直接使用原始分割。
 
 ## 快速开始
 
@@ -185,14 +185,15 @@ MiniLoRA/
 
 ### 模块 1：数据准备 (`my_prepare_data.py`)
 
-4 个函数：
+3 个函数：
 
 ```python
 read_jsonl(path)                    # 读取 jsonl 文件
 normalize_item(item)                # 清洗一条数据（统一 instruction，过滤空 output）
-split_data(items, 0.8, 0.1, 42)     # 划分 train/valid/test（80/10/10）
 write_jsonl(path, items)            # 写出 jsonl（ensure_ascii=False）
 ```
+
+分别读取 train/valid/test 原始文件，清洗后直接使用原始分割。
 
 关键点：`ensure_ascii=False` 保证中文不被转义成 `\uXXXX`。
 
@@ -224,6 +225,8 @@ generate(tokenizer, model, question) # 生成回答
 - `torch.no_grad()` 关闭梯度计算，省显存加速
 
 ### 模块 6：批量评测 (`my_eval_lora.py`)
+
+`eval_prompts.jsonl` 已包含在仓库中（10 个医疗评测问题）。
 
 流程：读取评测问题 → 跑 base 模型全部问题 → 释放显存 → 跑 LoRA 模型全部问题 → 保存对比结果。
 

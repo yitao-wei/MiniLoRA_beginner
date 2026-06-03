@@ -11,15 +11,15 @@ For people with Python and PyTorch experience who want to learn LoRA fine-tuning
 Fine-tunes Qwen2.5-0.5B-Instruct (498M parameters) with LoRA SFT on 640 Chinese medical Q&A samples, then compares base vs. fine-tuned model outputs.
 
 ```
-Raw data → Clean & split → SFT preprocessing → LoRA training → Inference → Evaluation → Ablation
- Module 1     Module 1         Module 2         Modules 3-4    Module 5    Module 6     Module 7
+Raw data → Clean → SFT preprocessing → LoRA training → Inference → Evaluation → Ablation
+ Module 1    Module 1       Module 2         Modules 3-4    Module 5    Module 6     Module 7
 ```
 
 ## 7 Modules
 
 | Module | File | What You Learn |
 |--------|------|----------------|
-| 1. Data Preparation | `scripts/my_prepare_data.py` | jsonl I/O, data cleaning, train/valid/test splitting |
+| 1. Data Preparation | `scripts/my_prepare_data.py` | jsonl I/O, data cleaning, use original train/valid/test split |
 | 2. SFT Preprocessing | `scripts/my_train_lora.py` | Messages format, tokenization, assistant-only loss mask (-100) |
 | 3. LoRA Config | `scripts/my_train_lora.py` | LoRA theory, get_peft_model, target_modules |
 | 4. Training | `scripts/my_train_lora.py` | TrainingArguments, Trainer, gradient accumulation, bf16 |
@@ -86,7 +86,7 @@ Data example:
 }
 ```
 
-This project uses 800 samples, split 80/10/10 into train (640), valid (160), and test (200).
+The original dataset has train/valid/test splits. This project uses the original split directly.
 
 ## Quick Start
 
@@ -188,14 +188,15 @@ Learning flow: read the reference code to understand the logic, then close it an
 
 ### Module 1: Data Preparation (`my_prepare_data.py`)
 
-4 functions:
+3 functions:
 
 ```python
 read_jsonl(path)                    # Read jsonl file
 normalize_item(item)                # Clean a data item (unify instruction, filter empty output)
-split_data(items, 0.8, 0.1, 42)     # Split into train/valid/test (80/10/10)
 write_jsonl(path, items)            # Write jsonl (ensure_ascii=False)
 ```
+
+Reads train/valid/test raw files separately, applies cleaning, and uses the original split directly.
 
 Key point: `ensure_ascii=False` ensures Chinese characters are not escaped to `\uXXXX`.
 
@@ -227,6 +228,8 @@ Key points:
 - `torch.no_grad()` disables gradient computation, saving VRAM and speeding up inference
 
 ### Module 6: Batch Evaluation (`my_eval_lora.py`)
+
+`eval_prompts.jsonl` is included in the repo (10 medical questions for evaluation).
 
 Pipeline: read eval questions -> run base model on all -> free VRAM -> run LoRA model on all -> save comparison results.
 

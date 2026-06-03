@@ -10,7 +10,7 @@
 
 运行方式（模块 4 训练）：
     python scripts/my_train_lora.py --max-train-samples 50 --max-valid-samples 20 --epochs 1 --grad-accum 4 --max-length 256
-
+    python scripts/my_train_lora.py --r 4 --output-dir outputs/lora-r4 --max-train-samples 200 --epochs 1
 参考代码：scripts/train_lora.py（先看懂，关掉，再自己写）
 """
 
@@ -49,7 +49,6 @@ def load_jsonl(path):
             except json.JSONDecodeError:
                 continue                   # 如果某行 JSON 格式有误，跳过而不是报错
     return items
-    pass
 
 
 # ============================================================
@@ -89,7 +88,6 @@ def build_messages(example):
         {"role": "user", "content": user_content},
         {"role": "assistant", "content": example["output"].strip()},
     ]
-    pass
 
 
 def preprocess(example, tokenizer, max_length):
@@ -150,7 +148,7 @@ def preprocess(example, tokenizer, max_length):
 
     attention_mask = [1] * len(input_ids)
     return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
-    pass
+
 
 
 # ============================================================
@@ -234,7 +232,6 @@ def load_model_and_lora(model_name, r=8, lora_alpha=16, lora_dropout=0.05):
     model = get_peft_model(model, lora_config)    # 把 LoRA 挂到模型上
     model.print_trainable_parameters()            # 打印可训练参数占比（预期 ~0.88%）
     return tokenizer, model
-    pass
 
 
 # ============================================================
@@ -321,7 +318,6 @@ def main():
     model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
     print(f"LoRA adapter saved to {args.output_dir}")
-    pass
 
 
 # ============================================================

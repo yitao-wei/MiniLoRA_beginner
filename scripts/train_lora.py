@@ -251,7 +251,7 @@ def preprocess(example: dict, tokenizer: AutoTokenizer, max_length: int) -> dict
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Qwen LoRA on Chinese medical SFT data.")
     # --- 命令行参数 ---
-    parser.add_argument("--model-name", default="Qwen/Qwen2.5-1.5B-Instruct")
+    parser.add_argument("--model-name", default="models/Qwen2.5-0.5B-Instruct")
     parser.add_argument("--train-file", type=Path, default=Path("data/medical/train.jsonl"))
     parser.add_argument("--valid-file", type=Path, default=Path("data/medical/valid.jsonl"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/qwen-medical-lora"))

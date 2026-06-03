@@ -55,14 +55,27 @@ all_data = []
 for fpath, desc in downloaded_files:
     print(f"读取 {desc}: {fpath}...")
     with open(fpath, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                try:
-                    item = json.loads(line)
-                    all_data.append(item)
-                except json.JSONDecodeError:
-                    pass
+        content = f.read().strip()
+        if not content:
+            continue
+        # 兼容 JSON 数组和 JSONL 两种格式
+        if content.startswith("["):
+            # JSON 数组格式
+            try:
+                items = json.loads(content)
+                all_data.extend(items)
+            except json.JSONDecodeError as e:
+                print(f"  解析 JSON 数组失败: {e}")
+        else:
+            # JSONL 格式（每行一个 JSON 对象）
+            for line in content.split("\n"):
+                line = line.strip()
+                if line:
+                    try:
+                        item = json.loads(line)
+                        all_data.append(item)
+                    except json.JSONDecodeError:
+                        pass
 
 print(f"共读取 {len(all_data)} 条数据")
 
